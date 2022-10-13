@@ -1,0 +1,19 @@
+version: "2"
+
+services:
+    app:
+        image: python:3.9
+            
+        volumes:
+        -   ./app:/app
+        -   ./packages/site-packages:/usr/local/lib/python3.9/site-packages
+
+        working_dir: /app/
+        
+       
+
+
+        
+        
+
+
