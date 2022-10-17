@@ -1,1 +1,4 @@
 /packages/site-packages/torch/
+/app/scripts/test/
+/app/scripts/processed_frames/
+
