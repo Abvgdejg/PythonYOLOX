@@ -1,3 +1,5 @@
+from re import S
+from turtle import speed
 import av
 import os
 import shutil
@@ -5,31 +7,28 @@ import argparse
 import cv2
 import numpy as np
 import glob
+import Searching
+import args_parser
+import time
 
+#args.demo = 'image'
 
-
-
-def AddArgParser():
-    
-    global argParser
-    argParser = argparse.ArgumentParser(description='')
-        
-    argParser.add_argument("--frames", default=100, help="Frames")
-        
-    argParser.add_argument("--video", help="Video")
-      
 
 def ArgParse():
     try:
-        args = argParser.parse_args()
+        tmp_args = args_parser.make_parser().parse_args()
         try:
             
-            frames_list = args.frames.split(",")
+            tmp_args.frames = tmp_args.frames.split(",")
             
         except:
-            frames_list = "all"
-        video = args.video
-        return [frames_list, video]
+          tmp_args.frames = "all"
+        
+        tmp_args.ckpt = '../YOLOX/assets/yolox_s.pth'
+        tmp_args.exp_file = '../YOLOX/exps/default/yolox_s.py'
+        tmp_args.path = "../YOLOX/assets/"
+        tmp_args.save_result = True
+        return tmp_args
     except:
         print("Arguments Error")
         raise SystemExit
@@ -41,7 +40,9 @@ def ClearDir():
 def SplitVideo(video):
     try:
         current_video = av.open(video)
-        frames_list = list(current_video.decode())
+        frames_list = []
+        for frame in current_video.decode():
+            frames_list.append(frame.to_image())
         return frames_list
     except:
         VideoError()
@@ -62,48 +63,80 @@ def VideoError():
     print("Video Error")
     raise SystemExit
 
-def SearchObjects():
-    os.system(f"python ../YOLOX/tools/Searching.py \
-    image -f ../YOLOX/exps/default/yolox_s.py -c ../YOLOX/datasets/yolox_s.pth \
-    --path test/ --conf 0.25 --nms 0.45 --tsize 640 \
-    --save_result --device [cpu/gpu]")
+def SearchObjects(type, frames):
+    if type == False:
+        os.system(f"python ../YOLOX/tools/Searching.py \
+        image -f ../YOLOX/exps/default/yolox_s.py -c ../YOLOX/assets/yolox_s.pth \
+        --path test/ --conf 0.25 --nms 0.45 --tsize 640 \
+        --save_result --device [cpu/gpu]")
+    else:
+        for frame in frames:
+            if os.path.exists(f"processed_frames/frame_{(frame, frame.index)[type == True]}.jpg"):
+                continue
+            else:
+                os.system(f"python Searching.py \
+            image -f ../YOLOX/exps/default/yolox_s.py -c ../YOLOX/assets/yolox_s.pth \
+            --path test/frame_{(frame, frame.index)[type == True]}.jpg --conf 0.25 --nms 0.45 --tsize 640 \
+            --save_result --device [cpu/gpu]")
+                
 
-def WriteVideo(video_frames):
+def WriteVideo(video_frames, type='not_all'):
     out = cv2.VideoWriter('output_video.avi',cv2.VideoWriter_fourcc(*'DIVX'), 20, (1920, 1080))
+    i = 0
 
     for frame in video_frames:
-        filename = f"processed_frames/frame_{frame}.jpg"
-        print(filename)
-        img = cv2.imread(filename)
-        out.write(img)
 
+
+        # filename = f"processed_frames/frame_{(frame, i)[type == 'all']}.jpg"
+
+        i += 1
+
+      
+        image = Searching.main_search(Searching.get_exp(args.exp_file), args, f'test/frame_{i}.jpg')
+        # img = cv2.imread(filename)
+        
+        out.write(image)
+        self._frames += 1
     out.release()
+
+def upload_speed(self):
+    _frames_speed = 0
+    
+  
+    _frames = 0
+    time.sleep(2) 
+    _frames_speed = _frames/2
+    print(f'current_speed: {_frames_speed}')
+
+    def addFrame():
+        frames += 1
+
+    #upload_speed()
 
 def Start():
 
-    AddArgParser()
-
     frame_list = []
 
-    params = ArgParse()
-    if (params[0] != "all"):
-        for param in params[0]:
+    global args 
+    args = ArgParse()
+    if (args.frames != "all"):
+        for param in args.frames:
             param = int(param)
             frame_list.append(param)
 
-    ClearDir()
+    # ClearDir()
     
-    splited_video = SplitVideo(params[1])
-    if (params[0] != "all"):
-        SaveFrames(frame_list, splited_video)
-    else: 
-        SaveFrames("all", params[1])
-
-    SearchObjects()
-    if (params[0] != "all"):
+    # splited_video = SplitVideo(args.video)
+    # if (args.frames != "all"):
+    #     SaveFrames(frame_list, splited_video)
+    # else: 
+    #     SaveFrames("all", args.video)
+    self.upload_speed()
+    # SearchObjects(True, splited_video)
+    if (args.frames != "all"):
         WriteVideo(frame_list)
     else: 
-        WriteVideo(splited_video)
+        WriteVideo(splited_video, 'all')
     
 
 Start()
